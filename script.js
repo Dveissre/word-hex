@@ -1,4 +1,4 @@
-const initialCells = Array.from({ length: 25 }, () => ({ word: "待填写", short: "D3", owner: "" }));
+const initialCells = Array.from({ length: 25 }, () => ({ word: "待填写", short: "-", owner: "" }));
 let cells = structuredClone(initialCells);
 let mode = "edit";
 let selectedCell = null;
@@ -75,7 +75,7 @@ document.querySelector("#cell-form").addEventListener("submit", event => {
   event.preventDefault();
   if (selectedCell === null) return;
   cells[selectedCell].word = wordInput.value.trim() || "待填写";
-  cells[selectedCell].short = shortInput.value.trim().toUpperCase() || "D3";
+  cells[selectedCell].short = shortInput.value.trim().toUpperCase() || "-";
   dialog.close();
   renderBoard();
 });
@@ -227,7 +227,7 @@ function importCSV(file) {
       const r = parseInt(p[0]) - 1, cl = parseInt(p[1]) - 1;
       if (r < 0 || r > 4 || cl < 0 || cl > 4) continue;
       cells[r * 5 + cl].word = p[2].trim() || "待填写";
-      cells[r * 5 + cl].short = p[3].trim().toUpperCase() || "D3";
+      cells[r * 5 + cl].short = p[3].trim().toUpperCase() || "-";
     }
     renderBoard();
   };
