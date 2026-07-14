@@ -1,0 +1,82 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>随蓝射覆</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <div id="capture-area" class="capture-area">
+        <aside class="control-panel">
+          <section class="team-card blue-card">
+            <div class="team-heading"><span class="team-dot"></span><h2>南北方</h2><span class="side-label">蓝方</span></div>
+            <div class="member-grid">
+              <label>描述<input class="team-input" placeholder="待填写" /></label>
+              <label>猜词<input class="team-input" placeholder="待填写" /></label>
+            </div>
+            <div class="buzzer-section">
+              <div class="buzzer-title"><span>抢答</span><small>行</small></div>
+              <div id="blue-buzzers" class="buzzer-list" aria-label="蓝方抢答机会"></div>
+            </div>
+          </section>
+
+          <section class="team-card red-card">
+            <div class="team-heading"><span class="team-dot"></span><h2>东西方</h2><span class="side-label">红方</span></div>
+            <div class="member-grid">
+              <label>描述<input class="team-input" placeholder="待填写" /></label>
+              <label>猜词<input class="team-input" placeholder="待填写" /></label>
+            </div>
+            <div class="buzzer-section">
+              <div class="buzzer-title"><span>抢答</span><small>列</small></div>
+              <div id="red-buzzers" class="buzzer-list" aria-label="红方抢答机会"></div>
+            </div>
+          </section>
+
+          <section class="match-host" aria-label="主持人">
+            <span class="team-dot"></span><span>主持人</span><input placeholder="待填写" />
+          </section>
+          <label class="match-title-line"><input placeholder="填写对局名称" aria-label="对局名称" /></label>
+
+          <div class="utility-actions">
+            <div class="mode-switch" aria-label="模式切换">
+              <button class="mode-button active" data-mode="edit">编辑</button>
+              <button class="mode-button" data-mode="play">游戏</button>
+            </div>
+            <button id="reset-button" class="reset-button">重置本局</button>
+            <button id="copy-image-button" class="copy-image-button" type="button">复制截图</button>
+          </div>
+        </aside>
+
+        <section class="game-area">
+          <div class="board-stage">
+            <div class="edge edge-north">北</div>
+            <div class="edge edge-south">南</div>
+            <div class="edge edge-west">西</div>
+            <div class="edge edge-east">东</div>
+            <div id="hex-board" class="hex-board" aria-label="棋盘"></div>
+          </div>
+        </section>
+        </div>
+        <div class="top-actions">
+          <button id="export-csv-button" class="top-action-button" type="button">导出词库</button>
+          <button id="import-csv-button" class="top-action-button" type="button">导入词库</button>
+          <input type="file" accept=".csv" id="import-csv-input" hidden />
+        </div>
+      </section>
+    </main>
+
+    <dialog id="cell-dialog" class="cell-dialog">
+      <form method="dialog" id="cell-form">
+        <div class="dialog-title"><span>编辑</span><button value="cancel" class="icon-close" aria-label="关闭">×</button></div>
+        <label>词语<input id="word-input" required /></label>
+        <label>缩写<input id="short-input" required /></label>
+        <div class="dialog-actions"><button value="cancel" class="cancel-button">取消</button><button value="default" class="save-button">保存</button></div>
+      </form>
+    </dialog>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
