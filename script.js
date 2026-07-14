@@ -20,7 +20,8 @@ function renderBoard() {
     const button = document.createElement("button");
     button.className = `hex-cell ${cell.owner ? `claimed-${cell.owner}` : ""}`;
     button.type = "button";
-    button.innerHTML = `<span class="cell-content"><span class="cell-short">${cell.short}</span><span class="cell-word">${cell.word}</span></span><span class="cell-lights" aria-label="抢答权"><i class="cell-light blue-light ${blueAvailable ? "" : "off"}"></i><i class="cell-light red-light ${redAvailable ? "" : "off"}"></i></span>`;
+    const lights = cell.owner ? "" : `<span class="cell-lights" aria-label="抢答权"><i class="cell-light blue-light ${blueAvailable ? "" : "off"}"></i><i class="cell-light red-light ${redAvailable ? "" : "off"}"></i></span>`;
+    button.innerHTML = `<span class="cell-content"><span class="cell-short">${cell.short}</span><span class="cell-word">${cell.word}</span></span>${lights}`;
     button.addEventListener("click", () => handleCellClick(index));
     board.append(button);
   });
@@ -142,6 +143,7 @@ copyImageButton.addEventListener("click", async () => {
 
   const RED = "#c84239", BLUE = "#1769ae";
   colorEls.forEach(el => {
+    if (el.classList.contains("off")) { el.style.backgroundColor = "transparent"; return; }
     const isBlue = el.matches(".claimed-blue, .edge-north, .edge-south, .blue-light") ||
                    el.closest(".blue-card");
     el.style.backgroundColor = isBlue ? BLUE : RED;
