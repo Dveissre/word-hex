@@ -102,6 +102,51 @@ copyImageButton.addEventListener("click", async () => {
   hiddenForCapture.forEach(element => { element.style.display = "none"; });
   copyImageButton.style.display = "none";
 
+  const captureArea = document.querySelector("#capture-area");
+  const origCapturePad = captureArea.style.padding;
+  const origCaptureOverflow = captureArea.style.overflow;
+  captureArea.style.padding = "16px";
+  captureArea.style.overflow = "visible";
+
+  /* ── 将 <input> 换成同等样式的 <span>，解决 html2canvas 渲染 input 文字削顶问题 ── */
+  const allInputs = captureArea.querySelectorAll("input");
+  const inputSwaps = [];
+  allInputs.forEach(input => {
+    const span = document.createElement("span");
+    span.textContent = input.value || input.placeholder || "";
+    const cs = getComputedStyle(input);
+    for (const p of ["fontFamily","fontSize","fontWeight","fontStyle","color",
+                     "lineHeight","textAlign","letterSpacing",
+                     "padding","paddingTop","paddingRight","paddingBottom","paddingLeft",
+                     "borderBottom","borderBottomWidth","borderBottomStyle","borderBottomColor",
+                     "background","backgroundColor","width","boxSizing","minWidth","margin",
+                     "display"]) {
+      const v = cs[p];
+      if (v && v !== "none" && v !== "normal" || p === "fontWeight") span.style[p] = v;
+    }
+    span.style.display = "inline-block";
+    span.style.border = "none";
+    span.style.boxShadow = "none";
+    span.style.outline = "none";
+    input.parentNode.replaceChild(span, input);
+    inputSwaps.push({ input, span });
+  });
+
+  const colorEls = captureArea.querySelectorAll(
+    ".blue-card .team-heading, .red-card .team-heading, " +
+    ".hex-cell.claimed-blue, .hex-cell.claimed-red, " +
+    ".edge-north, .edge-south, .edge-west, .edge-east, " +
+    ".blue-light, .red-light"
+  );
+  const origColors = [...colorEls].map(el => el.style.backgroundColor);
+
+  const RED = "#c84239", BLUE = "#1769ae";
+  colorEls.forEach(el => {
+    const isBlue = el.matches(".claimed-blue, .edge-north, .edge-south, .blue-light") ||
+                   el.closest(".blue-card");
+    el.style.backgroundColor = isBlue ? BLUE : RED;
+  });
+
   try {
     const canvas = await window.html2canvas(document.querySelector("#capture-area"), {
       backgroundColor: "#f5f4ef",
@@ -116,6 +161,12 @@ copyImageButton.addEventListener("click", async () => {
   } catch (error) {
     copyImageButton.textContent = "复制失败";
   } finally {
+    captureArea.style.overflow = origCaptureOverflow;
+    captureArea.style.padding = origCapturePad;
+    inputSwaps.forEach(({ input, span }) => {
+      if (span.parentNode) span.parentNode.replaceChild(input, span);
+    });
+    colorEls.forEach((el, i) => el.style.backgroundColor = origColors[i]);
     hiddenForCapture.forEach((element, index) => { element.style.display = originalDisplays[index]; });
     copyImageButton.style.display = "";
     copyImageButton.disabled = false;
