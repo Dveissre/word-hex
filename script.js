@@ -306,49 +306,55 @@ document.querySelector("#reset-all-button").addEventListener("click", () => {
   renderBuzzers("red");
 });
 
-/* ── 倒计时 ── */
-let timerRemaining = 60, timerDuration = 60, timerRunning = false, timerInterval = null;
-
-function updateTimer() {
-  const d = document.querySelector("#timer-digits");
-  const m = Math.floor(timerRemaining / 60), s = timerRemaining % 60;
-  d.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-  if (timerRemaining === 0) { d.classList.add("timer-warning"); d.classList.remove("timer-flash"); return; }
-  const thresh = timerDuration === 60 ? 10 : 5;
-  const warn = timerRunning && timerRemaining <= thresh;
-  d.classList.toggle("timer-warning", warn);
-  d.classList.toggle("timer-flash", warn);
-}
+/* ── 倒计时（基于 Date.now 绝对时间差，50ms 更新）── */
+let timerDuration = 90, timerRunning = false, timerInterval = null, timerEndTime = 0;
 
 function startTimer(duration) {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   timerDuration = duration;
-  timerRemaining = duration;
+  timerEndTime = Date.now() + duration * 1000;
   timerRunning = true;
   document.querySelectorAll(".timer-seg[data-duration]").forEach(b =>
     b.classList.toggle("active", parseInt(b.dataset.duration) === duration));
-  const digits = document.querySelector("#timer-digits");
-  digits.classList.remove("timer-warning", "timer-flash");
-  updateTimer();
+  const d = document.querySelector("#timer-digits");
+  d.textContent = `${String(duration).padStart(2,"0")}.00`;
+  d.classList.remove("timer-warning", "timer-flash");
+
+  let lastWholeSec = duration;
+
   timerInterval = setInterval(() => {
-    if (timerRemaining <= 0) { clearInterval(timerInterval); timerInterval = null; timerRunning = false; return; }
-    timerRemaining--;
-    if (timerDuration === 60 && timerRemaining === 30)
+    const remaining = timerEndTime - Date.now();
+    const wholeSec = Math.floor(remaining / 1000);
+
+    if (remaining <= 0) {
+      clearInterval(timerInterval); timerInterval = null; timerRunning = false;
+      d.textContent = "00.00"; d.classList.add("timer-warning"); d.classList.remove("timer-flash");
+      return;
+    }
+
+    if (timerDuration >= 60 && lastWholeSec > 30 && wholeSec <= 30) {
       document.querySelector(".timer-bar").classList.add("timer-midflash");
       setTimeout(() => document.querySelector(".timer-bar")?.classList.remove("timer-midflash"), 100);
-    if (timerRemaining === 0) { timerRunning = false; clearInterval(timerInterval); timerInterval = null; }
-    updateTimer();
-  }, 1000);
+    }
+    lastWholeSec = wholeSec;
+
+    const cs = Math.floor((remaining % 1000) / 10);
+    d.textContent = `${String(wholeSec).padStart(2,"0")}.${String(cs).padStart(2,"0")}`;
+
+    const thresh = timerDuration >= 60 ? 10 : 5;
+    d.classList.toggle("timer-warning", wholeSec <= thresh);
+    d.classList.toggle("timer-flash", wholeSec <= thresh);
+  }, 50);
 }
 
 function resetTimer() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   timerRunning = false;
-  timerRemaining = timerDuration;
-  document.querySelector("#timer-digits").classList.remove("timer-warning", "timer-flash");
+  const d = document.querySelector("#timer-digits");
+  d.textContent = `${String(timerDuration).padStart(2,"0")}.00`;
+  d.classList.remove("timer-warning", "timer-flash");
   document.querySelector(".timer-bar")?.classList.remove("timer-midflash");
   document.querySelectorAll(".timer-seg[data-duration]").forEach(b => b.classList.remove("active"));
-  updateTimer();
 }
 
 document.querySelectorAll(".timer-seg[data-duration]").forEach(b =>
