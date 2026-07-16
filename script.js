@@ -2,6 +2,7 @@ const initialCells = Array.from({ length: 25 }, () => ({ word: "待填写", shor
 let cells = structuredClone(initialCells);
 let mode = "edit";
 let selectedCell = null;
+let showWords = false;
 const buzzerState = { blue: [false, false, false, false, false], red: [false, false, false, false, false] };
 
 const board = document.querySelector("#hex-board");
@@ -19,6 +20,7 @@ function renderBoard() {
     const redAvailable = !buzzerState.red[column];
     const button = document.createElement("button");
     button.className = `hex-cell ${cell.owner ? `claimed-${cell.owner}` : ""}`;
+    if (showWords) button.classList.add("reveal-word");
     button.type = "button";
     const lights = cell.owner ? "" : `<span class="cell-lights" aria-label="抢答权"><i class="cell-light blue-light ${blueAvailable ? "" : "off"}"></i><i class="cell-light red-light ${redAvailable ? "" : "off"}"></i></span>`;
     button.innerHTML = `<span class="cell-content"><span class="cell-short">${cell.short}</span><span class="cell-word">${cell.word}</span></span>${lights}`;
@@ -36,8 +38,9 @@ function handleCellClick(index) {
     return;
   }
   const next = { "": "red", red: "blue", blue: "" };
-  cells[index].owner = next[cells[index].owner];
-  renderBoard();
+ cells[index].owner = next[cells[index].owner];
+ renderBoard();
+  saveState();
 }
 
 function renderBuzzers(team) {
@@ -54,7 +57,8 @@ function renderBuzzers(team) {
       if (mode !== "play") return;
       buzzerState[team][index] = !buzzerState[team][index];
       renderBuzzers(team);
-      renderBoard();
+     renderBoard();
+      saveState();
     });
     container.append(button);
   });
@@ -62,8 +66,10 @@ function renderBuzzers(team) {
 
 function setMode(nextMode) {
   mode = nextMode;
+  if (mode === "play") showWords = false;
   document.body.classList.toggle("edit-mode", mode === "edit");
   document.body.classList.toggle("play-mode", mode === "play");
+  document.querySelector("#toggle-word-btn").textContent = "查看词语";
   document.querySelectorAll(".mode-button").forEach(button => button.classList.toggle("active", button.dataset.mode === mode));
   renderBoard();
   renderBuzzers("blue");
@@ -76,9 +82,16 @@ document.querySelector("#cell-form").addEventListener("submit", event => {
   if (selectedCell === null) return;
   cells[selectedCell].word = wordInput.value.trim() || "待填写";
   cells[selectedCell].short = shortInput.value.trim().toUpperCase() || "-";
-  dialog.close();
+ dialog.close();
+ renderBoard();
+  saveState();
+});
+document.querySelector("#toggle-word-btn").addEventListener("click", () => {
+  showWords = !showWords;
+  document.querySelector("#toggle-word-btn").textContent = showWords ? "查看记号" : "查看词语";
   renderBoard();
 });
+
 document.querySelectorAll(".cancel-button, .icon-close").forEach(button => button.addEventListener("click", event => { event.preventDefault(); dialog.close(); }));
 document.querySelector("#reset-button").addEventListener("click", () => {
   cells.forEach(cell => { cell.owner = ""; });
@@ -86,7 +99,8 @@ document.querySelector("#reset-button").addEventListener("click", () => {
   buzzerState.red.fill(false);
   renderBoard();
   renderBuzzers("blue");
-  renderBuzzers("red");
+ renderBuzzers("red");
+  saveState();
 });
 
 copyImageButton.addEventListener("click", async () => {
@@ -229,7 +243,8 @@ function importCSV(file) {
       cells[r * 5 + cl].word = p[2].trim() || "待填写";
       cells[r * 5 + cl].short = p[3].trim().toUpperCase() || "-";
     }
-    renderBoard();
+   renderBoard();
+    saveState();
   };
   reader.readAsText(file);
 }
@@ -242,4 +257,53 @@ document.querySelector("#import-csv-input").addEventListener("change", e => {
   e.target.value = "";
 });
 
+/* ── localStorage 持久化 ── */
+function saveState() {
+  const bi = document.querySelectorAll(".blue-card .team-input");
+  const ri = document.querySelectorAll(".red-card .team-input");
+  const state = {
+    cells, buzzerState,
+    blueDesc: bi[0]?.value || "", blueGuess: bi[1]?.value || "",
+    redDesc: ri[0]?.value || "", redGuess: ri[1]?.value || "",
+    host: document.querySelector(".match-host input")?.value || "",
+    matchTitle: document.querySelector(".match-title-line input")?.value || ""
+  };
+  try { localStorage.setItem("wordhex_state", JSON.stringify(state)); } catch (e) {}
+}
+
+function restoreState() {
+  try {
+    const raw = localStorage.getItem("wordhex_state");
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    if (state.cells) cells = state.cells;
+    if (state.buzzerState) Object.assign(buzzerState, state.buzzerState);
+    const bi = document.querySelectorAll(".blue-card .team-input");
+    const ri = document.querySelectorAll(".red-card .team-input");
+    if (bi[0]) bi[0].value = state.blueDesc || "";
+    if (bi[1]) bi[1].value = state.blueGuess || "";
+    if (ri[0]) ri[0].value = state.redDesc || "";
+    if (ri[1]) ri[1].value = state.redGuess || "";
+    const hi = document.querySelector(".match-host input");
+    const ti = document.querySelector(".match-title-line input");
+    if (hi) hi.value = state.host || "";
+    if (ti) ti.value = state.matchTitle || "";
+  } catch (e) {}
+}
+
+document.querySelectorAll(".team-input, .match-host input, .match-title-line input")
+  .forEach(el => el.addEventListener("input", saveState));
+
+document.querySelector("#reset-all-button").addEventListener("click", () => {
+  cells = structuredClone(initialCells);
+  buzzerState.blue.fill(false);
+  buzzerState.red.fill(false);
+  document.querySelectorAll(".team-input, .match-host input, .match-title-line input").forEach(el => el.value = "");
+  localStorage.removeItem("wordhex_state");
+  renderBoard();
+  renderBuzzers("blue");
+  renderBuzzers("red");
+});
+
+restoreState();
 setMode("edit");
