@@ -23,7 +23,8 @@ function renderBoard() {
     if (showWords) button.classList.add("reveal-word");
     button.type = "button";
     const lights = cell.owner ? "" : `<span class="cell-lights" aria-label="抢答权"><i class="cell-light blue-light ${blueAvailable ? "" : "off"}"></i><i class="cell-light red-light ${redAvailable ? "" : "off"}"></i></span>`;
-    button.innerHTML = `<span class="cell-content"><span class="cell-short">${cell.short}</span><span class="cell-word">${cell.word}</span></span>${lights}`;
+    const wordCls = `cell-word${cell.word.length >= 9 ? ' cell-word-small' : cell.word.length <= 3 ? ' cell-word-large' : ''}`;
+    button.innerHTML = `<span class="cell-content"><span class="cell-short">${cell.short}</span><span class="${wordCls}">${cell.word}</span></span>${lights}`;
     button.addEventListener("click", () => handleCellClick(index));
     board.append(button);
   });
@@ -112,7 +113,7 @@ copyImageButton.addEventListener("click", async () => {
 
   copyImageButton.disabled = true;
   copyImageButton.textContent = "生成中…";
-  const hiddenForCapture = [...document.querySelectorAll(".mode-switch, .utility-actions")];
+  const hiddenForCapture = [...document.querySelectorAll(".mode-switch, .utility-actions, .timer-bar")];
   const originalDisplays = hiddenForCapture.map(element => element.style.display);
   hiddenForCapture.forEach(element => { element.style.display = "none"; });
   copyImageButton.style.display = "none";
@@ -304,6 +305,55 @@ document.querySelector("#reset-all-button").addEventListener("click", () => {
   renderBuzzers("blue");
   renderBuzzers("red");
 });
+
+/* ── 倒计时 ── */
+let timerRemaining = 60, timerDuration = 60, timerRunning = false, timerInterval = null;
+
+function updateTimer() {
+  const d = document.querySelector("#timer-digits");
+  const m = Math.floor(timerRemaining / 60), s = timerRemaining % 60;
+  d.textContent = `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
+  if (timerRemaining === 0) { d.classList.add("timer-warning"); d.classList.remove("timer-flash"); return; }
+  const thresh = timerDuration === 60 ? 10 : 5;
+  const warn = timerRunning && timerRemaining <= thresh;
+  d.classList.toggle("timer-warning", warn);
+  d.classList.toggle("timer-flash", warn);
+}
+
+function startTimer(duration) {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  timerDuration = duration;
+  timerRemaining = duration;
+  timerRunning = true;
+  document.querySelectorAll(".timer-seg[data-duration]").forEach(b =>
+    b.classList.toggle("active", parseInt(b.dataset.duration) === duration));
+  const digits = document.querySelector("#timer-digits");
+  digits.classList.remove("timer-warning", "timer-flash");
+  updateTimer();
+  timerInterval = setInterval(() => {
+    if (timerRemaining <= 0) { clearInterval(timerInterval); timerInterval = null; timerRunning = false; return; }
+    timerRemaining--;
+    if (timerDuration === 60 && timerRemaining === 30)
+      document.querySelector(".timer-bar").classList.add("timer-midflash");
+      setTimeout(() => document.querySelector(".timer-bar")?.classList.remove("timer-midflash"), 100);
+    if (timerRemaining === 0) { timerRunning = false; clearInterval(timerInterval); timerInterval = null; }
+    updateTimer();
+  }, 1000);
+}
+
+function resetTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  timerRunning = false;
+  timerRemaining = timerDuration;
+  document.querySelector("#timer-digits").classList.remove("timer-warning", "timer-flash");
+  document.querySelector(".timer-bar")?.classList.remove("timer-midflash");
+  document.querySelectorAll(".timer-seg[data-duration]").forEach(b => b.classList.remove("active"));
+  updateTimer();
+}
+
+document.querySelectorAll(".timer-seg[data-duration]").forEach(b =>
+  b.addEventListener("click", () => startTimer(parseInt(b.dataset.duration))));
+document.querySelector("#timer-reset").addEventListener("click", resetTimer);
 
 restoreState();
 setMode("edit");
